@@ -1,5 +1,3 @@
-import Link from 'next/link'
-
 function Index({ date }) {
   return <div>{date}</div>
 }
