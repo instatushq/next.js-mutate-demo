@@ -3,7 +3,7 @@ function Index({ date }) {
 }
 
 export async function getStaticProps() {
-  const date = new Date()
+  const date = new Date().toString()
 
   return {
     props: {
