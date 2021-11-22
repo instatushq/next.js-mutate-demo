@@ -1,0 +1,13 @@
+diff --git a/node_modules/next/dist/server/next-server.js b/node_modules/next/dist/server/next-server.js
+index 466a082..e2ca250 100644
+--- a/node_modules/next/dist/server/next-server.js
++++ b/node_modules/next/dist/server/next-server.js
+@@ -1526,7 +1526,7 @@ class Server {
+             }
+             return {
+                 ...result,
+-                revalidate: result.revalidate !== undefined ? result.revalidate : /* default to minimum revalidate (this should be an invariant) */ 1
++                revalidate: result.revalidate !== undefined && isPreviewMode === false ? result.revalidate : /* default to minimum revalidate (this should be an invariant) */ 1
+             };
+         });
+         if (!cacheEntry) {
