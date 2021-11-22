@@ -1,13 +1,49 @@
 diff --git a/node_modules/next/dist/server/next-server.js b/node_modules/next/dist/server/next-server.js
-index 466a082..efc32aa 100644
+index 466a082..60b0cc0 100644
 --- a/node_modules/next/dist/server/next-server.js
 +++ b/node_modules/next/dist/server/next-server.js
+@@ -1396,7 +1396,7 @@ class Server {
+                 });
+                 body = renderResult.html;
+                 pageData = renderResult.renderOpts.pageData;
+-                sprRevalidate = renderResult.renderOpts.revalidate;
++                sprRevalidate = 1;
+                 isNotFound = renderResult.renderOpts.isNotFound;
+                 isRedirect = renderResult.renderOpts.isRedirect;
+             } else {
+@@ -1429,7 +1429,7 @@ class Server {
+                 body = renderResult;
+                 // TODO: change this to a different passing mechanism
+                 pageData = renderOpts.pageData;
+-                sprRevalidate = renderOpts.revalidate;
++                sprRevalidate = 1;
+                 isNotFound = renderOpts.isNotFound;
+                 isRedirect = renderOpts.isRedirect;
+             }
+@@ -1452,7 +1452,7 @@ class Server {
+                 };
+             }
+             return {
+-                revalidate: sprRevalidate,
++                revalidate: 1,
+                 value
+             };
+         };
+@@ -1526,7 +1526,7 @@ class Server {
+             }
+             return {
+                 ...result,
+-                revalidate: result.revalidate !== undefined ? result.revalidate : /* default to minimum revalidate (this should be an invariant) */ 1
++                revalidate: 1 // @ali
+             };
+         });
+         if (!cacheEntry) {
 @@ -1547,7 +1547,7 @@ class Server {
              // cache according to revalidate correctly
              private: isPreviewMode || is404Page && cachedData,
              stateful: !isSSG,
 -            revalidate
-+            revalidate: 1, // ali
++            revalidate: 1 // @ali
          } : undefined;
          if (!cachedData) {
              if (revalidateOptions) {
