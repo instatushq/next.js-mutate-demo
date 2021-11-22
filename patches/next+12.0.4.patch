@@ -1,0 +1,13 @@
+diff --git a/node_modules/next/dist/server/incremental-cache.js b/node_modules/next/dist/server/incremental-cache.js
+index ea4c313..2e0cb32 100644
+--- a/node_modules/next/dist/server/incremental-cache.js
++++ b/node_modules/next/dist/server/incremental-cache.js
+@@ -64,7 +64,7 @@ class IncrementalCache {
+             initialRevalidateSeconds: 1
+         };
+         const revalidateAfter = typeof initialRevalidateSeconds === 'number' ? initialRevalidateSeconds * 1000 + fromTime : initialRevalidateSeconds;
+-        return revalidateAfter;
++        return fromTime;
+     }
+     getFallback(page) {
+         page = (0, _normalizePagePath).normalizePagePath(page);
