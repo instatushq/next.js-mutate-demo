@@ -1,13 +1,111 @@
 diff --git a/node_modules/next/dist/server/incremental-cache.js b/node_modules/next/dist/server/incremental-cache.js
-index ea4c313..cdc33d8 100644
+index ea4c313..69b13ba 100644
 --- a/node_modules/next/dist/server/incremental-cache.js
 +++ b/node_modules/next/dist/server/incremental-cache.js
-@@ -64,7 +64,7 @@ class IncrementalCache {
+@@ -55,7 +55,7 @@ class IncrementalCache {
+     getSeedPath(pathname, ext) {
+         return _path.default.join(this.incrementalOptions.pagesDir, `${pathname}.${ext}`);
+     }
+-    calculateRevalidate(pathname, fromTime) {
++    calculateRevalidate(pathname, url, fromTime) {
+         pathname = toRoute(pathname);
+         // in development we don't have a prerender-manifest
+         // and default to always revalidating to allow easier debugging
+@@ -64,14 +64,15 @@ class IncrementalCache {
              initialRevalidateSeconds: 1
          };
          const revalidateAfter = typeof initialRevalidateSeconds === 'number' ? initialRevalidateSeconds * 1000 + fromTime : initialRevalidateSeconds;
 -        return revalidateAfter;
-+        return new Date().getTime() - 1000;
++        const mutate = url && url.includes('MUTATE');
++        return mutate ? new Date().getTime() - 1000 : revalidateAfter;
      }
      getFallback(page) {
          page = (0, _normalizePagePath).normalizePagePath(page);
+         return _fs.promises.readFile(this.getSeedPath(page, 'html'), 'utf8');
+     }
+     // get data from cache if available
+-    async get(pathname) {
++    async get(pathname, url) {
+         if (this.incrementalOptions.dev) return null;
+         pathname = (0, _normalizePagePath).normalizePagePath(pathname);
+         let data = this.cache && this.cache.get(pathname);
+@@ -79,7 +80,7 @@ class IncrementalCache {
+         if (!data) {
+             if (this.prerenderManifest.notFoundRoutes.includes(pathname)) {
+                 const now = Date.now();
+-                const revalidateAfter = this.calculateRevalidate(pathname, now);
++                const revalidateAfter = this.calculateRevalidate(pathname, url, now);
+                 data = {
+                     value: null,
+                     revalidateAfter: revalidateAfter !== false ? now : false
+@@ -91,7 +92,7 @@ class IncrementalCache {
+                 const { mtime  } = await _fs.promises.stat(htmlPath);
+                 const pageData = JSON.parse(await _fs.promises.readFile(this.getSeedPath(pathname, 'json'), 'utf8'));
+                 data = {
+-                    revalidateAfter: this.calculateRevalidate(pathname, mtime.getTime()),
++                    revalidateAfter: this.calculateRevalidate(pathname, url, mtime.getTime()),
+                     value: {
+                         kind: 'PAGE',
+                         html,
+@@ -119,7 +120,7 @@ class IncrementalCache {
+         return data;
+     }
+     // populate the incremental cache with new data
+-    async set(pathname, data, revalidateSeconds) {
++    async set(pathname, url, data, revalidateSeconds) {
+         if (this.incrementalOptions.dev) return;
+         if (typeof revalidateSeconds !== 'undefined') {
+             // TODO: Update this to not mutate the manifest from the
+@@ -133,7 +134,7 @@ class IncrementalCache {
+         pathname = (0, _normalizePagePath).normalizePagePath(pathname);
+         if (this.cache) {
+             this.cache.set(pathname, {
+-                revalidateAfter: this.calculateRevalidate(pathname, new Date().getTime()),
++                revalidateAfter: this.calculateRevalidate(pathname, url, new Date().getTime()),
+                 value: data
+             });
+         }
+diff --git a/node_modules/next/dist/server/next-server.js b/node_modules/next/dist/server/next-server.js
+index 466a082..ac5e53e 100644
+--- a/node_modules/next/dist/server/next-server.js
++++ b/node_modules/next/dist/server/next-server.js
+@@ -1456,7 +1456,7 @@ class Server {
+                 value
+             };
+         };
+-        const cacheEntry = await this.responseCache.get(ssgCacheKey, async (hasResolved)=>{
++        const cacheEntry = await this.responseCache.get(ssgCacheKey, req.url, async (hasResolved)=>{
+             const isProduction = !this.renderOpts.dev;
+             const isDynamicPathname = (0, _utils).isDynamicRoute(pathname);
+             const didRespond = hasResolved || (0, _utils1).isResSent(res);
+diff --git a/node_modules/next/dist/server/response-cache.js b/node_modules/next/dist/server/response-cache.js
+index 9813ca5..e4e5484 100644
+--- a/node_modules/next/dist/server/response-cache.js
++++ b/node_modules/next/dist/server/response-cache.js
+@@ -14,7 +14,7 @@ class ResponseCache {
+         this.incrementalCache = incrementalCache;
+         this.pendingResponses = new Map();
+     }
+-    get(key, responseGenerator) {
++    get(key, url, responseGenerator) {
+         const pendingResponse = key ? this.pendingResponses.get(key) : null;
+         if (pendingResponse) {
+             return pendingResponse;
+@@ -43,7 +43,7 @@ class ResponseCache {
+         };
+         (async ()=>{
+             try {
+-                const cachedResponse = key ? await this.incrementalCache.get(key) : null;
++                const cachedResponse = key ? await this.incrementalCache.get(key, url) : null;
+                 if (cachedResponse) {
+                     var ref;
+                     resolve({
+@@ -64,7 +64,7 @@ class ResponseCache {
+                 resolve(cacheEntry);
+                 if (key && cacheEntry && typeof cacheEntry.revalidate !== 'undefined') {
+                     var ref;
+-                    await this.incrementalCache.set(key, ((ref = cacheEntry.value) === null || ref === void 0 ? void 0 : ref.kind) === 'PAGE' ? {
++                    await this.incrementalCache.set(key, url, ((ref = cacheEntry.value) === null || ref === void 0 ? void 0 : ref.kind) === 'PAGE' ? {
+                         kind: 'PAGE',
+                         html: cacheEntry.value.html.toUnchunkedString(),
+                         pageData: cacheEntry.value.pageData
