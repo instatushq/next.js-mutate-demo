@@ -1,17 +1,18 @@
 diff --git a/node_modules/next/dist/server/incremental-cache.js b/node_modules/next/dist/server/incremental-cache.js
-index ea4c313..e5b64db 100644
+index ea4c313..5cd2c8d 100644
 --- a/node_modules/next/dist/server/incremental-cache.js
 +++ b/node_modules/next/dist/server/incremental-cache.js
-@@ -55,7 +55,7 @@ class IncrementalCache {
+@@ -55,7 +55,8 @@ class IncrementalCache {
      getSeedPath(pathname, ext) {
          return _path.default.join(this.incrementalOptions.pagesDir, `${pathname}.${ext}`);
      }
 -    calculateRevalidate(pathname, fromTime) {
 +    calculateRevalidate(pathname, url, fromTime) {
++        console.log('calculateRevalidate url', url);
          pathname = toRoute(pathname);
          // in development we don't have a prerender-manifest
          // and default to always revalidating to allow easier debugging
-@@ -64,14 +64,15 @@ class IncrementalCache {
+@@ -64,14 +65,16 @@ class IncrementalCache {
              initialRevalidateSeconds: 1
          };
          const revalidateAfter = typeof initialRevalidateSeconds === 'number' ? initialRevalidateSeconds * 1000 + fromTime : initialRevalidateSeconds;
@@ -26,10 +27,11 @@ index ea4c313..e5b64db 100644
      // get data from cache if available
 -    async get(pathname) {
 +    async get(pathname, url) {
++        console.log('incremental cache get url', url);
          if (this.incrementalOptions.dev) return null;
          pathname = (0, _normalizePagePath).normalizePagePath(pathname);
          let data = this.cache && this.cache.get(pathname);
-@@ -79,7 +80,7 @@ class IncrementalCache {
+@@ -79,7 +82,7 @@ class IncrementalCache {
          if (!data) {
              if (this.prerenderManifest.notFoundRoutes.includes(pathname)) {
                  const now = Date.now();
@@ -38,7 +40,7 @@ index ea4c313..e5b64db 100644
                  data = {
                      value: null,
                      revalidateAfter: revalidateAfter !== false ? now : false
-@@ -91,7 +92,7 @@ class IncrementalCache {
+@@ -91,7 +94,7 @@ class IncrementalCache {
                  const { mtime  } = await _fs.promises.stat(htmlPath);
                  const pageData = JSON.parse(await _fs.promises.readFile(this.getSeedPath(pathname, 'json'), 'utf8'));
                  data = {
@@ -47,7 +49,7 @@ index ea4c313..e5b64db 100644
                      value: {
                          kind: 'PAGE',
                          html,
-@@ -108,7 +109,8 @@ class IncrementalCache {
+@@ -108,7 +111,8 @@ class IncrementalCache {
          if (!data) {
              return null;
          }
@@ -57,16 +59,17 @@ index ea4c313..e5b64db 100644
              data.isStale = true;
          }
          const manifestPath = toRoute(pathname);
-@@ -119,7 +121,7 @@ class IncrementalCache {
+@@ -119,7 +123,8 @@ class IncrementalCache {
          return data;
      }
      // populate the incremental cache with new data
 -    async set(pathname, data, revalidateSeconds) {
 +    async set(pathname, url, data, revalidateSeconds) {
++        console.log('incremental cache set url', url);
          if (this.incrementalOptions.dev) return;
          if (typeof revalidateSeconds !== 'undefined') {
              // TODO: Update this to not mutate the manifest from the
-@@ -133,7 +135,7 @@ class IncrementalCache {
+@@ -133,7 +138,7 @@ class IncrementalCache {
          pathname = (0, _normalizePagePath).normalizePagePath(pathname);
          if (this.cache) {
              this.cache.set(pathname, {
@@ -89,19 +92,20 @@ index 466a082..ac5e53e 100644
              const isDynamicPathname = (0, _utils).isDynamicRoute(pathname);
              const didRespond = hasResolved || (0, _utils1).isResSent(res);
 diff --git a/node_modules/next/dist/server/response-cache.js b/node_modules/next/dist/server/response-cache.js
-index 9813ca5..e4e5484 100644
+index 9813ca5..a9c9748 100644
 --- a/node_modules/next/dist/server/response-cache.js
 +++ b/node_modules/next/dist/server/response-cache.js
-@@ -14,7 +14,7 @@ class ResponseCache {
+@@ -14,7 +14,8 @@ class ResponseCache {
          this.incrementalCache = incrementalCache;
          this.pendingResponses = new Map();
      }
 -    get(key, responseGenerator) {
 +    get(key, url, responseGenerator) {
++        console.log('response cache get url', url);
          const pendingResponse = key ? this.pendingResponses.get(key) : null;
          if (pendingResponse) {
              return pendingResponse;
-@@ -43,7 +43,7 @@ class ResponseCache {
+@@ -43,7 +44,7 @@ class ResponseCache {
          };
          (async ()=>{
              try {
@@ -110,7 +114,7 @@ index 9813ca5..e4e5484 100644
                  if (cachedResponse) {
                      var ref;
                      resolve({
-@@ -64,7 +64,7 @@ class ResponseCache {
+@@ -64,7 +65,7 @@ class ResponseCache {
                  resolve(cacheEntry);
                  if (key && cacheEntry && typeof cacheEntry.revalidate !== 'undefined') {
                      var ref;
