@@ -79,31 +79,15 @@ index ea4c313..5cd2c8d 100644
              });
          }
 diff --git a/node_modules/next/dist/server/next-server.js b/node_modules/next/dist/server/next-server.js
-index 466a082..ea78c8b 100644
+index 466a082..15b73af 100644
 --- a/node_modules/next/dist/server/next-server.js
 +++ b/node_modules/next/dist/server/next-server.js
-@@ -1383,8 +1383,10 @@ class Server {
-             let sprRevalidate;
-             let isNotFound;
-             let isRedirect;
-+            console.log('doRender')
-             // handle serverless
-             if (isLikeServerless) {
-+                console.log('isLikeServerless')
-                 const renderResult = await components.ComponentMod.renderReqToHTML(req, res, 'passthrough', {
-                     locale,
-                     locales,
-@@ -1399,7 +1401,9 @@ class Server {
-                 sprRevalidate = renderResult.renderOpts.revalidate;
-                 isNotFound = renderResult.renderOpts.isNotFound;
-                 isRedirect = renderResult.renderOpts.isRedirect;
-+                console.log('doRender sprRevalidate', sprRevalidate)
-             } else {
-+                console.log('!isLikeServerless')
-                 const origQuery = (0, _url).parse(req.url || '', true).query;
-                 const hadTrailingSlash = urlPathname !== '/' && this.nextConfig.trailingSlash;
-                 const resolvedUrl = (0, _url).format({
-@@ -1456,7 +1460,7 @@ class Server {
+@@ -1452,11 +1452,11 @@ class Server {
+                 };
+             }
+             return {
+-                revalidate: sprRevalidate,
++                revalidate: req.url && req.url.includes('?MUTATE') ? true : sprRevalidate,
                  value
              };
          };
@@ -112,7 +96,7 @@ index 466a082..ea78c8b 100644
              const isProduction = !this.renderOpts.dev;
              const isDynamicPathname = (0, _utils).isDynamicRoute(pathname);
              const didRespond = hasResolved || (0, _utils1).isResSent(res);
-@@ -1494,6 +1498,7 @@ class Server {
+@@ -1494,6 +1494,7 @@ class Server {
                      throw new NoFallbackError();
                  }
                  if (!isDataReq) {
@@ -120,15 +104,28 @@ index 466a082..ea78c8b 100644
                      // Production already emitted the fallback as static HTML.
                      if (isProduction) {
                          const html = await this.incrementalCache.getFallback(locale ? `/${locale}${pathname}` : pathname);
-@@ -1524,6 +1529,7 @@ class Server {
+@@ -1524,9 +1525,10 @@ class Server {
              if (!result) {
                  return null;
              }
-+            console.log('revalidate: result.revalidate !== undefined ? result.revalidate : 1', result.revalidate)
++            const mutate = req.url && req.url.includes('?MUTATE')
              return {
                  ...result,
-                 revalidate: result.revalidate !== undefined ? result.revalidate : /* default to minimum revalidate (this should be an invariant) */ 1
-@@ -1576,6 +1582,7 @@ class Server {
+-                revalidate: result.revalidate !== undefined ? result.revalidate : /* default to minimum revalidate (this should be an invariant) */ 1
++                revalidate: result.revalidate !== undefined && !mutate ? result.revalidate : /* default to minimum revalidate (this should be an invariant) */ 1
+             };
+         });
+         if (!cacheEntry) {
+@@ -1547,7 +1549,7 @@ class Server {
+             // cache according to revalidate correctly
+             private: isPreviewMode || is404Page && cachedData,
+             stateful: !isSSG,
+-            revalidate
++            revalidate: req.url && req.url.includes('?MUTATE') ? 1 : revalidate
+         } : undefined;
+         if (!cachedData) {
+             if (revalidateOptions) {
+@@ -1576,6 +1578,7 @@ class Server {
                  return null;
              }
          } else {
