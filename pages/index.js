@@ -6,10 +6,8 @@ export async function getStaticProps() {
   const date = new Date().toString()
 
   return {
-    props: {
-      revalidate: 200,
-      date,
-    },
+    props: { date },
+    revalidate: 200,
   }
 }
 
